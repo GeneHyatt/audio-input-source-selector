@@ -24,20 +24,19 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 // Initialize DHT sensor.
 DHT dht(DHTPIN, DHTTYPE);
 int32_t encPos;
-int failCount = 0;
+bool dhtEnabled = false;
 
 void setup(void) {
-  Serial.begin(15000);
+  Serial.begin(115200);
   Serial.println(F("Hello! Starting audio selector unit."));
   Serial.println("Looking for seesaw!");
-
   if (! ss.begin(SS_ADDR) || ! pixel.begin(SS_ADDR)) {
     Serial.println("Couldn't find seesaw on default address");
     while (1) delay(10);
   }
   Serial.println("seesaw started");
 
-
+  Serial.println("Setup Pixel");
   pixel.setBrightness(50);
   pixel.show();
 
@@ -51,19 +50,32 @@ void setup(void) {
   delay(10);
   ss.setGPIOInterrupts((uint32_t)1 << ENC_BUTT_PIN, 1);
   ss.enableEncoderInterrupt();
+  Serial.println("Turning on DHT sensor");
 
   dht.begin();
+  delay(10);
+  if (!dht.readTemperature()) {
+    Serial.println("DHT sensor not found.");
+  } else {
+    dhtEnabled = true;
+  }
 
+  Serial.println("Turning on Display");
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
   tft.setTextWrap(true);
+  Serial.println("Startup complete.");
+  Serial.println("Enjoy!!");
 }
 
 void loop() {
 
-  delay(10);
   if (! ss.digitalRead(ENC_BUTT_PIN)) {
     Serial.println("Button pressed!");
+    tftPrintRunTime();
+    if (dhtEnabled) {
+      drawAmbientData();
+    }
   }
 
   int32_t newPos = ss.getEncoderPosition();
@@ -84,24 +96,6 @@ void loop() {
   // delay(10);
 
 
-
-  if (!dht.readTemperature()) {
-    Serial.println(F("Failed to read from DHT sensor!"));
-    failCount++;
-    if (failCount <= 1) {
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setTextColor(ST77XX_RED, ST77XX_BLACK);
-      tft.println("Failed to read from DHT sensor!");
-    }
-  } else {
-    if (failCount > 0) {
-      Serial.println(F("Reset failcount and set display up."));
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-      failCount = 0;
-    }
-    drawAmbientData();
-  }
 }
 
 uint32_t Wheel(byte wPOS) {
@@ -118,7 +112,7 @@ uint32_t Wheel(byte wPOS) {
 }
 
 void drawAmbientData() {
-    // Reading temperature or humidity takes about 250 milliseconds!
+  // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float h = dht.readHumidity();
   // Read temperature as Fahrenheit (isFahrenheit = true)
@@ -143,8 +137,7 @@ void drawAmbientData() {
   tft.println(F("F"));
 }
 
-void tftPrintTest() {
-  tft.setTextWrap(false);
+void tftPrintRunTime() {
   delay(1500);
   tft.setCursor(0, 0);
   tft.fillScreen(ST77XX_BLACK);
