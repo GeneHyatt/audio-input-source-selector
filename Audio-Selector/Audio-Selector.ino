@@ -6,22 +6,24 @@
 #include <SPI.h>
 
 
+// Establish pins for read and write.
 #define TFT_CS 10
 #define TFT_RST 9 // Or set to -1 and connect to Arduino RESET pin
 #define TFT_DC 8
 #define DHTPIN 2     // Digital pin connected to the DHT sensor
-#define DEVICEPIN_A 4     // Digital pin connected to turntable
-#define DEVICEPIN_B 5     // Digital pin connected to tape
+#define DEVICEPIN_A 3     // Digital pin connected to turntable
+#define DEVICEPIN_B 4     // Digital pin connected to tape player
+#define DEVICEPIN_C 5     // Digital pin connected to blue tooth
+#define DEVICEPIN_D 6     // Digital pin connected to aux
+
+#define ENC_BUTT_PIN 24 
+#define NEO_PIN 6
 
 #define DHTTYPE DHT11
-#define ENC_BUTT_PIN 24
-#define NEO_PIN 6
 #define SS_ADDR 0x36
 
 Adafruit_seesaw ss;
 seesaw_NeoPixel pixel = seesaw_NeoPixel(1, NEO_PIN, NEO_GRB + NEO_KHZ800);
-
-// For 1.44" and 1.8" TFT with ST7735 use:
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // color definitions
@@ -34,6 +36,11 @@ const uint16_t  Display_Color_Magenta      = 0xF81F;
 const uint16_t  Display_Color_Yellow       = 0xFFE0;
 const uint16_t  Display_Color_White        = 0xFFFF;
 
+int buttonPushCounter = 0;   // counter for the number of button presses
+int buttonState = 0;         // current state of the button
+int lastButtonState = 0;     // previous state of the button
+
+
 // Initialize DHT sensor.
 DHT dht(DHTPIN, DHTTYPE);
 int32_t encPos;
@@ -41,7 +48,7 @@ uint16_t        Display_Text_Color         = Display_Color_Green;
 uint16_t        Display_Background_Color    = Display_Color_Black;
 bool dhtEnabled = false;
 volatile bool screenState = true;
-bool            isDisplayVisible        = false;
+bool isDisplayVisible        = false;
 
 void setup(void) {
   Serial.begin(115200);
@@ -65,7 +72,7 @@ void setup(void) {
   // use a pin for the built in encoder switch
   ss.pinMode(ENC_BUTT_PIN, INPUT_PULLUP);
 
-  // get starting position
+  // get starting position of encoder
   encPos = ss.getEncoderPosition();
 
   Serial.println("Turning on interrupts");
