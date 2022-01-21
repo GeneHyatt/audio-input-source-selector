@@ -5,7 +5,6 @@
 #include <DHT.h>
 #include <SPI.h>
 
-
 // Establish pins for read and write.
 #define TFT_CS 10
 #define TFT_RST 9 // Or set to -1 and connect to Arduino RESET pin
@@ -13,14 +12,23 @@
 #define DHTPIN 2     // Digital pin connected to the DHT sensor
 #define DEVICEPIN_A 3     // Digital pin connected to turntable
 #define DEVICEPIN_B 4     // Digital pin connected to tape player
-#define DEVICEPIN_C 5     // Digital pin connected to blue tooth
+#define DEVICEPIN_C 5     // Digital pin connected to bluetooth
 #define DEVICEPIN_D 6     // Digital pin connected to aux
 
-#define ENC_BUTT_PIN 24 
+#define ENC_BUTT_PIN 24
 #define NEO_PIN 6
 
 #define DHTTYPE DHT11
 #define SS_ADDR 0x36
+
+const char dev_0[] PROGMEM = "Turntable";
+const char dev_1[] PROGMEM = "Cassette";
+const char dev_2[] PROGMEM = "Bluetooth player";
+const char dev_3[] PROGMEM = "Aux";
+
+const char *const device_name_table[] PROGMEM = {dev_0, dev_1, dev_2, dev_3};
+
+char buffer[30];  // make sure this is large enough for the largest string it must hold
 
 Adafruit_seesaw ss;
 seesaw_NeoPixel pixel = seesaw_NeoPixel(1, NEO_PIN, NEO_GRB + NEO_KHZ800);
@@ -36,19 +44,23 @@ const uint16_t  Display_Color_Magenta      = 0xF81F;
 const uint16_t  Display_Color_Yellow       = 0xFFE0;
 const uint16_t  Display_Color_White        = 0xFFFF;
 
+const int stepCount = 5;     // number of detents to count before next switching to next device.
 int buttonPushCounter = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
 int lastButtonState = 0;     // previous state of the button
 
 
+
 // Initialize DHT sensor.
 DHT dht(DHTPIN, DHTTYPE);
-int32_t encPos;
-uint16_t        Display_Text_Color         = Display_Color_Green;
-uint16_t        Display_Background_Color    = Display_Color_Black;
-bool dhtEnabled = false;
-volatile bool screenState = true;
-bool isDisplayVisible        = false;
+
+int encPos;
+uint16_t Display_Text_Color          = Display_Color_Green;
+uint16_t Display_Background_Color    = Display_Color_Black;
+volatile bool dhtEnabled = false;
+volatile bool screenState    = true;
+volatile bool isDisplayVisible        = false;
+
 
 void setup(void) {
   Serial.begin(115200);
@@ -61,6 +73,8 @@ void setup(void) {
 
   pinMode(DEVICEPIN_A, OUTPUT);
   pinMode(DEVICEPIN_B, OUTPUT);
+  pinMode(DEVICEPIN_C, OUTPUT);
+  pinMode(DEVICEPIN_D, OUTPUT);
 
   screenState = false;
   Serial.println("seesaw started");
@@ -126,16 +140,20 @@ void loop() {
       digitalWrite(DEVICEPIN_B, LOW);
       Serial.println(digitalRead(DEVICEPIN_A));
       Serial.println(digitalRead(DEVICEPIN_B));
+      Serial.println(getDeviceName(0));
     } else if (newPos >= 11 && newPos < 21) {
       digitalWrite(DEVICEPIN_A, LOW);
       digitalWrite(DEVICEPIN_B, HIGH);
       Serial.println(digitalRead(DEVICEPIN_A));
       Serial.println(digitalRead(DEVICEPIN_B));
+      Serial.println(getDeviceName(1));
+
     } else {
       digitalWrite(DEVICEPIN_A, LOW);
       digitalWrite(DEVICEPIN_B, LOW);
       Serial.println(digitalRead(DEVICEPIN_A));
       Serial.println(digitalRead(DEVICEPIN_B));
+      Serial.println("No device selected.");
     }
 
     // change the neopixel color
@@ -148,6 +166,12 @@ void loop() {
   // delay(10);
 
 
+}
+
+
+String getDeviceName(byte deviceIndex) {
+  strcpy_P(buffer, (char *)pgm_read_word(&(device_name_table[deviceIndex])));
+  return buffer;
 }
 
 uint32_t Wheel(byte wPOS) {
