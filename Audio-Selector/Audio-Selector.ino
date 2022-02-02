@@ -4,6 +4,7 @@
 #include <seesaw_neopixel.h>
 #include <DHT.h>
 #include <SPI.h>
+#include <AudioDevice.h>;
 
 // Establish pins for read and write.
 #define TFT_CS 10
@@ -29,6 +30,11 @@ const char dev_3[] PROGMEM = "Aux";
 const char *const device_name_table[] PROGMEM = {dev_0, dev_1, dev_2, dev_3};
 
 char buffer[30];  // make sure this is large enough for the largest string it must hold
+
+AudioDevice deviceA(DEVICEPIN_A, getDeviceName(0));
+AudioDevice deviceB(DEVICEPIN_B, getDeviceName(1));
+AudioDevice deviceC(DEVICEPIN_C, getDeviceName(2));
+AudioDevice deviceD(DEVICEPIN_D, getDeviceName(3));
 
 Adafruit_seesaw ss;
 seesaw_NeoPixel pixel = seesaw_NeoPixel(1, NEO_PIN, NEO_GRB + NEO_KHZ800);
